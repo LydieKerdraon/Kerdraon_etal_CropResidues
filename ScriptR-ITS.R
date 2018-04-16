@@ -1,7 +1,7 @@
 #this script can be use on ITS data 
 #Data used for these analyses are given in the R environment Data_ITS.RData
 
-####################Environnement
+####################Environment
 # Haplo : Haplotypes list with 298 samples. (149 biological samples* 2 technical replicas)
 # newname : file used to rename sample names and delete haplotypes not present in the two technical replicas ("Uncertain presences")
 # sample.dataITS : description of biological samples
