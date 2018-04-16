@@ -1,5 +1,5 @@
 #this script can be use on ITS data 
-#Data used for these analyses are given in the R environment ITS_Data.RData
+#Data used for these analyses are given in the R environment Data_ITS.RData
 
 ####################Environnement
 # Haplo : Haplotypes list with 298 samples. (149 biological samples* 2 technical replicas)
