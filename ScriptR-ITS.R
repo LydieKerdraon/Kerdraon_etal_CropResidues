@@ -122,7 +122,7 @@ adonis(distance(phyITSnorm1, "bray") ~ Month, data = as(sample_data(phyITSnorm1)
 ##----Decomposition of beta-diversity #Require betapart package
 #to decompose beta diversity into nestedness / turnover, we use betapart package. 
 #Analyses require 2 table of haplotypes presence/absence, composed of the same names for each time comparisons. 
-#They are given in the environnment XXX
+#They are given in the Data-ITS environment
 
 test.t <- beta.temp(Temp1, Temp2, index.family="sor")
 test.t
