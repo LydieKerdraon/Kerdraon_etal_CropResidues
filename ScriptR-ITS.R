@@ -47,7 +47,7 @@ condition <- function(x) { x > 0 }
 taxaToKeep <- genefilter_sample(phyITS, condition, 1)
 phyITS<-prune_taxa(taxaToKeep, phyITS)
 phyITS
-
+sum(otu_table(phyITS))
 #Removing unclassified haplotypes / Anthophyta, Arthropoda, Cercozoa,unclassified_Plantae
 table(tax_table(phyITS)[, "Phylum"])
 phyITS <- subset_taxa(phyITS, !Phylum %in% c("", "p__Anthophyta", "p__Arthropoda", "p__Cercozoa", "p__unclassified_Plantae", "Unclassified"))
@@ -80,26 +80,25 @@ RichPlotITS<-plot_richness(phyITSnorm, x="Month", measures = measures)+
 RichPlotITS+facet_grid(Growing.Season~Plant.Succession)
 
 
-##----Wilcoxon rank sum test on Shannon index -- Example for 1st growing season
+##----Wilcoxon rank sum test on Shannon index 
 richnessITS<-estimate_richness(phyITSnorm,measures = measures)
 
 test<-sample.dataITS[match(rownames(richnessITS), rownames(sample.dataITS)), ]
 compareRichITS<-cbind(test,richnessITS)
 
+#comparison wheat in monoculture - wheat in rotation
+Wheat<-subset(compareRichITS, Plant.Succession != "Oilseed Rape")
+model<-lm(Shannon~Plant.Succession + Growing.Season+ Month.ent  , data=Wheat)
+library(car)
+Anova(model)
 
-Year1<-subset(compareRichITS, Growing.Season=="2015-2016")
 
-OilseedITS1 <- subset(Year1, Plant.Succession=="Oilseed Rape") 
-WheatMITS1 <- subset(Year1, Plant.Succession=="Wheat (monoculture)")
-WheatRITS1 <- subset(Year1, Plant.Succession=="Wheat (Rotation)")
+#Comparison Wheat in rotation - oilseed rape
+Rotation<-subset(compareRichITS, Plant.Succession != "Wheat (monoculture)")
+model<-lm(Shannon~Plant.Succession + Growing.Season+ Month.ent+Parcelle.Code  , data=Rotation)
+library(car)
+Anova(model)
 
-#example : wilcoxon test between plant succession
-compare_means(data=Year1,Shannon~Plant.Succession,method = "wilcox.test")
-
-#example : pairwise wilcoxon for wheat monoculture, 1st growing season
-WheatM1.ITS.pairwise<-pairwise.wilcox.test(WheatMITS1$Shannon,WheatMITS1$Month, p.adjust.method = "none")
-WheatM1.ITS.pvalue = fullPTable(WheatM1.ITS.pairwise$p.value)
-multcompLetters(WheatM1.ITS.pvalue) #require : rcompanion package
 
 ######## Beta-diversity analyses : Multidimensional scaling on Bray-curtis index
 OTU.ordITS<-ordinate(phyITSnorm,"MDS","bray")
@@ -110,13 +109,16 @@ MdsITS=plot_ordination(phyITSnorm,OTU.ordITS,type="sample",color="Plant.Successi
 	theme(panel.spacing = unit(1, "lines"))+
 	theme_bw()
 MdsITS
-##----Permanova test on Bray-curtis index -- Example for "Plant" factor on overall dataset
-adonis(distance(phyITSnorm, "bray") ~ Plant, data = as(sample_data(phyITSnorm), "data.frame"))
 
-#-Example for "sampling period" factor, first growing season
-phyITSnorm1 <- subset_samples(phyITSnorm, Growing.Season=="2015-2016") #subset
+##----Permanova test on Bray-curtis index 
+Wheatbray<-subset_samples(phyITSnorm,Plant.Succession !="Oilseed Rape")
 set.seed(1)
-adonis(distance(phyITSnorm1, "bray") ~ Month, data = as(sample_data(phyITSnorm1), "data.frame"))
+adonis2(distance(Wheatbray, "bray") ~ Plant.Succession+Growing.Season+Month.ent,by="margin", data = as(sample_data(Wheatbray), "data.frame"))
+
+Rotationbray<-subset_samples(phyITSnorm,Plant.Succession !="Wheat (monoculture)")
+set.seed(1)
+adonis2(distance(Rotationbray, "bray") ~ Plant.Succession+Growing.Season+Month.ent+Parcelle.Code,by="margin", data = as(sample_data(Rotationbray), "data.frame"))
+
 
 
 ##----Decomposition of beta-diversity #Require betapart package
@@ -134,7 +136,7 @@ test.t
 ##-----Filter genus
 #example : Wheat
 
-phyITSnormWheat <- subset_samples(phyITSnorm, Plant=="Wheat")
+phyITSnormWheat <- phyITSnorm
 phyITSbyGenusWheat= tax_glom(phyITSnormWheat, "Genus") #aggregate Genus
 
 
@@ -158,13 +160,24 @@ GenusTable_Wheat_final <- subset_taxa(GenusTable_Wheat, !Genus %in% Unclassified
 GenusTable_Wheat_final <- subset_taxa(GenusTable_Wheat_final, !Genus %in% "Unclassified")
 
 #Make heatmap on Genera
-sample_data(GenusTable_Wheat_final)$Condition<- factor(sample_data(GenusTable_Wheat_final)$Condition, 
-                                                       levels = c("Wheat (monoculture).2015-2016.October", "Wheat (monoculture).2015-2016.December", "Wheat (monoculture).2015-2016.February", "Wheat (monoculture).2015-2016.May",
-                                                                  "Wheat (monoculture).2016-2017.July", "Wheat (monoculture).2016-2017.October", "Wheat (monoculture).2016-2017.December", "Wheat (monoculture).2016-2017.February", "Wheat (monoculture).2016-2017.May", "Wheat (monoculture).2017-2018.July",
-                                                                  "Wheat (Rotation).2015-2016.October", "Wheat (Rotation).2015-2016.December", "Wheat (Rotation).2015-2016.February", "Wheat (Rotation).2015-2016.May",
-                                                                  "Wheat (Rotation).2016-2017.July", "Wheat (Rotation).2016-2017.October", "Wheat (Rotation).2016-2017.December", "Wheat (Rotation).2016-2017.February", "Wheat (Rotation).2016-2017.May", "Wheat (Rotation).2017-2018.July"))
+sample_data(GenusTable_Wheat_final)$Plant.Succession<- factor(sample_data(GenusTable_Wheat_final)$Plant.Succession, 
+                                                       levels = c("Wheat (monoculture)", "Wheat (Rotation)","Oilseed Rape"))
 
 
+tax_table(GenusTable_Wheat_final)[,1] <- gsub("k__", "", tax_table(GenusTable_Wheat_final)[,1]);tax_table(GenusTable_Wheat_final)[,2] <- gsub("p__", "", tax_table(GenusTable_Wheat_final)[,2]);tax_table(GenusTable_Wheat_final)[,3] <- gsub("c__", "", tax_table(GenusTable_Wheat_final)[,3]);tax_table(GenusTable_Wheat_final)[,4] <- gsub("o__", "", tax_table(GenusTable_Wheat_final)[,4]);tax_table(GenusTable_Wheat_final)[,5] <- gsub("f__", "", tax_table(GenusTable_Wheat_final)[,5]);tax_table(GenusTable_Wheat_final)[,6] <- gsub("g__", "", tax_table(GenusTable_Wheat_final)[,6])
 
-plot_heatmap(GenusTable_Wheat_final,taxa.label = "Genus")+facet_grid(~Condition, scales = "free")
+
+TopNOTUs <- names(sort(taxa_sums(GenusTable_Wheat_final), TRUE)[1:60])
+ent10   <- prune_taxa(TopNOTUs, GenusTable_Wheat_final)
+nameX<- rev(tax_table(ent10)[,"Genus"][order(tax_table(ent10)[,"Genus"]),])
+
+plot_heatmap(ent10,  method="MDS", taxa.order = taxa_names(nameX), taxa.label = "Genus", na.value = "#FFFFFF")+
+  facet_grid(~Plant.Succession+Growing.Season+Month, scales="free")+
+  theme(panel.spacing=unit(.05, "lines"),
+        panel.border = element_rect(color = "black", fill = NA, size = 0.5), 
+        strip.background = element_rect(color = "black", size = 0.5))+
+  theme(axis.text.y = element_text(face="italic",size=10))+
+  scale_fill_gradient2(low="#ffffeb", mid=	"green", high="#000000",  
+                       na.value = "white", trans = log_trans(4), 
+                       midpoint = log(16000, base = 4))
 
